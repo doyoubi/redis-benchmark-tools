@@ -34,7 +34,7 @@ type getCommand struct {}
 
 func (c getCommand) request(ctx context.Context, client redis.Cmdable, key string) error {
 	_, err := client.Get(ctx, key).Result()
-	if err != nil {
+	if err != nil && err != redis.Nil {
 		log.Err(err).Msg("failed to GET")
 		return err
 	}
@@ -102,7 +102,7 @@ type benchmarkResult struct {
 func (e *cmdExecutor) run(ctx context.Context) (*benchmarkResult, error) {
 	group, ctx := errgroup.WithContext(ctx)
 
-	sampleStopped := make(chan bool)
+	sampleStopped := make(chan bool, 1)
 	go func() {
 		if err := e.samples.run(ctx); err != nil {
 			log.Err(err).Msg("failed to collect samples")

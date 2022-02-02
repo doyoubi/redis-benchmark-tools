@@ -1,6 +1,8 @@
 package pkg
 
-import "context"
+import (
+	"context"
+)
 
 
 // Histogram implements a high performance way
@@ -97,6 +99,7 @@ func newSampleCollector(initUnit uint64) *sampleCollector {
 	return &sampleCollector{
 		histogram: NewHistogram(initUnit, 10),
 		dataC: make(chan []uint64, 1024),
+		stopC: make(chan bool, 1),
 	}
 }
 

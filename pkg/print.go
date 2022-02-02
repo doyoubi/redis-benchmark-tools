@@ -2,7 +2,10 @@ package pkg
 
 import (
 	"fmt"
+	"os"
 	"strings"
+
+	"github.com/jedib0t/go-pretty/v6/table"
 )
 
 type resultPrinter struct {}
@@ -19,18 +22,21 @@ func (d *resultPrinter) output(result *benchmarkResult) error {
 		}
 	}
 
-	const maxLen uint64 = 30
+	const maxLen uint64 = 60
 
-	fmt.Printf("range\tcount\t\n")
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"start (micro-sec)", "end (micro-sec)", "count", ""})
 	for _, segment := range segments {
 		l := maxLen * segment.count / maxCount
 		bar := strings.Repeat("#", int(l))
-		fmt.Printf("%d - %d\t%d\t%s\n", segment.start, segment.end, segment.count, bar)
+		t.AppendRow([]interface{}{segment.start/1000, segment.end/1000, segment.count, bar})
 	}
+	t.Render()
 
 	commands := histogram.GetCount()
 	fmt.Printf("commands: %d\n", commands)
-	fmt.Printf("duration: %d\n", result.Duration)
+	fmt.Printf("duration: %f ms\n", result.Duration.Seconds())
 	qps := commands * 1000 / uint64(result.Duration.Milliseconds())
 	fmt.Printf("qps: %d\n", qps)
 
