@@ -95,8 +95,7 @@ func newCmdExecutor(client redis.Cmdable, cmdNum, concurrentNum int, keyPrefix s
 }
 
 type benchmarkResult struct {
-	Histogram []HistogramResult
-	Commands int
+	Histogram *Histogram
 	Duration time.Duration
 }
 
@@ -105,7 +104,9 @@ func (e *cmdExecutor) run(ctx context.Context) (*benchmarkResult, error) {
 
 	sampleStopped := make(chan bool)
 	go func() {
-		e.samples.run(ctx)
+		if err := e.samples.run(ctx); err != nil {
+			log.Err(err).Msg("failed to collect samples")
+		}
 		sampleStopped <- true
 	}()
 
@@ -114,11 +115,9 @@ func (e *cmdExecutor) run(ctx context.Context) (*benchmarkResult, error) {
 		weightSum += task.weight
 	}
 
-	finalCmdNum := 0
 	start := time.Now()
 	for i := 0; i != e.concurrentNum; i++ {
 		n := e.cmdNum / e.concurrentNum
-		finalCmdNum += n
 
 		group.Go(func() error {
 			return e.runCmd(ctx, n)
@@ -137,8 +136,7 @@ func (e *cmdExecutor) run(ctx context.Context) (*benchmarkResult, error) {
 	log.Info().Msg("all stopped")
 
 	result := &benchmarkResult{
-		Histogram: e.samples.histogram.GetResults(),
-		Commands: finalCmdNum,
+		Histogram: e.samples.histogram,
 		Duration: duration,
 	}
 	return result, nil
